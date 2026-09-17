@@ -29,6 +29,19 @@ public class SteeringAgent : MonoBehaviour
     [SerializeField]
     private float stopRadius = 1.5f;
 
+    [Header("Flee")]
+
+    [SerializeField]
+    private float fleeRadius = 1.2f;
+
+    [SerializeField]
+    private float fleeExitRadius = 7f;
+
+    [SerializeField]
+    private float fleeSpeed = 3f;
+
+    private bool isFleeing = false;
+
     [Header("Wander")]
 
     [SerializeField]
@@ -68,13 +81,40 @@ public class SteeringAgent : MonoBehaviour
 
         if (useTarget && target != null)
         {
-            desiredVelocity = CalculateArrive();
+            Vector3 toTarget =
+                target.position - transform.position;
+
+            toTarget.y = 0f;
+
+            float distanceToTarget = toTarget.magnitude;
+
+            if (!isFleeing && distanceToTarget < fleeRadius)
+            {
+                isFleeing = true;
+            }
+
+            if (isFleeing)
+            {
+                if (distanceToTarget >= fleeExitRadius)
+                {
+                    isFleeing = false;
+                    desiredVelocity = CalculateArrive();
+                }
+                else
+                {
+                    desiredVelocity = CalculateFlee();
+                }
+            }
+            else
+            {
+                desiredVelocity = CalculateArrive();
+            }
         }
         else
         {
+            isFleeing = false;
             desiredVelocity = CalculateWander();
         }
-
         desiredVelocity =
             ApplyObstacleAvoidance(desiredVelocity);
 
@@ -129,6 +169,16 @@ public class SteeringAgent : MonoBehaviour
         }
 
         return toTarget.normalized * desiredSpeed;
+    }
+
+    private Vector3 CalculateFlee()
+    {
+        Vector3 awayFromTarget =
+            transform.position - target.position;
+
+        awayFromTarget.y = 0f;
+
+        return awayFromTarget.normalized * fleeSpeed;
     }
 
     private Vector3 CalculateWander()
